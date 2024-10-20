@@ -12,6 +12,8 @@ RUN apt-get update -qq \
         pkg-config \
         make \
         wget \
+        ffmpeg \
+        #xdg-utils \
         ghostscript
 
 # setup a minimal texlive installation
@@ -33,6 +35,9 @@ WORKDIR /opt/manim
 RUN pip install --no-cache .[jupyterlab]
 
 RUN pip install -r docs/requirements.txt
+RUN pip install -r docs/assistant-requirements.txt
+RUN pip install "numpy<2,>=1.16"
+RUN pip install flask gunicorn
 
 ARG NB_USER=manimuser
 ARG NB_UID=1000
@@ -51,5 +56,9 @@ USER root
 RUN chown -R ${NB_USER}:${NB_USER} ${HOME}
 RUN chmod 777 ${HOME}
 USER ${NB_USER}
+COPY app.py /manim
 
-CMD [ "/bin/bash" ]
+EXPOSE 5000
+
+#CMD ["/bin/bash", "-c", "mkdir test; touch test/myfile; tail -f /dev/null"]
+CMD ["gunicorn", "-w", "4", "-b", "0.0.0.0:5000", "app:app"]

@@ -1,0 +1,17 @@
+xgboost==1.4.2
+sympy==1.8
+statsmodels==0.14.4
+spacy==3.8.2
+seaborn==0.13.2
+scipy==1.14.1
+scikit-learn==1.5.2
+plotly
+pandas
+nltk
+networkx
+matplotlib
+keras
+joblib
+h5py
+gensim
+bokeh
