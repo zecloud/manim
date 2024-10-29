@@ -5,7 +5,7 @@ from flask import Flask, request, jsonify,send_file
 import traceback
 import subprocess
 app = Flask(__name__)
-
+app.config['DEBUG'] = True
 
 
 @app.route('/code/execute', methods=['POST'])
@@ -47,38 +47,55 @@ def execute_code():
         }), 500
     
 @app.route('/manim/create', methods=['POST'])
+def create_file():
+    try:
+        data = request.data
+
+
+        data_str = data.decode('utf-8')
+        lines = data_str.split('\n')
+        if not lines:
+            return jsonify({'status': 'error', 'message': 'No data provided'}), 400
+
+        pyfile = lines[0].strip()
+        if not pyfile:
+            return jsonify({'status': 'error', 'message': 'No filename provided in the first line'}), 400
+
+        # Écrire le reste des données dans le fichier
+        with open(pyfile, 'w') as file:
+            file.write('\n'.join(lines[1:]))
+
+        return jsonify({'status': 'success', 'filename': pyfile}), 200
+    except Exception as e:
+        return jsonify({
+            'status': 'error',
+            'message': str(e),
+            'traceback': traceback.format_exc(),
+        }), 500
+    
+
+@app.route('/manim/generate', methods=['POST'])
 def execute_command():
     try:
-        #identifier = request.args.get('identifier', '')
         data = request.json
-        manim= data.get('manim',"")
-        pyfile= manim.get('pyfile',"")
-        videofile= manim.get('videofile',"")
-        command = manim.get('command',"")
-        pythoncode= manim.get('pythoncode',"")
-        if not pyfile:
-            return jsonify({'status': 'error', 'message': 'No python file provided'}), 400
-        if not videofile:
-            return jsonify({'status': 'error', 'message': 'No video file provided'}), 400
-        if not command:
-            return jsonify({'status': 'error', 'message': 'No command provided'}), 400
-        if not pythoncode:
-            return jsonify({'status': 'error', 'message': 'No python code provided'}), 400
-        
-        with open(pyfile, 'w') as file: file.write(pythoncode)
-        # Exécuter la commande avec un timeout de 60 secondes
+        command = data.get('command', '')
         result = subprocess.run(command, shell=True, capture_output=True, text=True, timeout=600)
 
         if result.returncode == 0:
             return jsonify({'status': 'success', 'output': result.stdout}), 200
         else:
             return jsonify({'status': 'error', 'message': result.stderr}), 400
-
+        
     except subprocess.TimeoutExpired:
         return jsonify({'status': 'error', 'message': 'Command timed out'}), 408
 
     except Exception as e:
-        return jsonify({'status': 'error', 'message': str(e)}), 500
+        return jsonify({
+            'status': 'error',
+            'message': str(e),
+            'traceback': traceback.format_exc(),
+            'output': result.stderr
+        }), 500
 
 @app.route('/manim/get_video', methods=['POST'])
 def get_video():
@@ -93,7 +110,13 @@ def get_video():
 
     return send_file(videofile, as_attachment=True)
 
-
+@app.errorhandler(500)
+def handle_500_error(e):
+    return jsonify({
+        'status': 'error',
+        'message': str(e),
+        'traceback': traceback.format_exc()
+    }), 500
 
 if __name__ == '__main__':
     app.run(debug=True)

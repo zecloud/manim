@@ -36,6 +36,7 @@ RUN pip install --no-cache .[jupyterlab]
 
 RUN pip install -r docs/requirements.txt
 RUN pip install -r docs/assistant-requirements.txt
+RUN pip install manim-ml
 RUN pip install "numpy<2,>=1.16"
 RUN pip install flask gunicorn
 
@@ -60,5 +61,4 @@ COPY app.py /manim
 
 EXPOSE 5000
 
-#CMD ["/bin/bash", "-c", "mkdir test; touch test/myfile; tail -f /dev/null"]
-CMD ["gunicorn", "-w", "4", "-b", "0.0.0.0:5000", "app:app"]
+CMD ["gunicorn", "--timeout", "600","-w", "4", "-b", "0.0.0.0:5000", "app:app"]
